@@ -1,0 +1,10 @@
+{
+  "freq": 935000000.0,
+  "rate": 2083333,
+  "bw": 2000000.0,
+  "gain": 71,
+  "samples": 65536,
+  "backend": "serial-console",
+  "tty": "/dev/ttyUSB1",
+  "when": "2026-11-25T22:16:00"
+}

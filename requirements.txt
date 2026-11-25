@@ -1,0 +1,9 @@
+# python dependencies for the scripts/ tools
+# On Ubuntu 24.04 prefer:  sudo apt install python3-numpy python3-scipy \
+#                                      python3-matplotlib python3-serial
+# pyadi-iio is optional: capture.py falls back to the libiio CLI without it.
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.6
+pyserial>=3.5
+pyadi-iio>=0.0.15

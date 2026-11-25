@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+# raw captures can be large; keep the small samples only
+captures/*.raw
+!captures/sample_*.raw
+*.npy
+!captures/sample_*.npy
