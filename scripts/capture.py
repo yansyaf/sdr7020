@@ -17,6 +17,7 @@ picture <out>.png unless --no-plot is given.
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -33,6 +34,14 @@ DEV_PHY = "ad9361-phy"
 # --------------------------------------------------------------------------
 # backends
 # --------------------------------------------------------------------------
+def _contexts_text():
+    try:
+        return subprocess.run(["iio_info", "-s"], capture_output=True, text=True,
+                              timeout=20).stdout
+    except Exception:
+        return ""
+
+
 def find_contexts():
     if shutil.which("iio_info"):
         out = subprocess.run(["iio_info", "-s"], capture_output=True, text=True).stdout
@@ -130,12 +139,28 @@ def main():
     out = a.out or os.path.join("captures", "cap_%.3fMHz" % (a.freq / 1e6))
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
 
+    if a.uri.startswith("usb:") and not re.search(r"\[usb:", _contexts_text()):
+        print("error: no PlutoSDR found on USB.\n"
+              "  * the cable must be in the board's USB (OTG data) port, not DEBUG\n"
+              "  * use a data cable, not a charge-only one\n"
+              "  * run scripts/check_setup.sh to see what the host detects",
+              file=sys.stderr)
+        return 2
+
     try:
         iq = capture_pyadi(a.uri, a.freq, a.rate, a.bw, a.gain, nsamples, a.antenna)
         backend = "pyadi-iio"
     except Exception as e:
-        print("pyadi-iio unavailable (%s), using libiio CLI" % e)
-        iq = capture_cli(a.uri, a.freq, a.rate, a.bw, a.gain, nsamples, a.antenna)
+        if os.environ.get("PLUTO_VERBOSE"):
+            print("pyadi-iio unavailable (%s), using libiio CLI" % e)
+        try:
+            iq = capture_cli(a.uri, a.freq, a.rate, a.bw, a.gain, nsamples, a.antenna)
+        except RuntimeError as err:
+            print("error: capture failed (%s)\n"
+                  "  try scripts/check_setup.sh, or the serial fallback:\n"
+                  "  scripts/capture_serial.py --freq %.1f --samples %d"
+                  % (err, a.freq, nsamples), file=sys.stderr)
+            return 3
         backend = "libiio-cli"
 
     np.save(out + ".npy", iq)

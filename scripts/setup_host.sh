@@ -53,10 +53,11 @@ ldconfig
 SoapySDRUtil --info 2>/dev/null | grep -q plutosdr && echo "   plutosdr driver registered"
 
 echo "==> python packages for $TARGET_USER"
+DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip
+# libiio 0.25 in Ubuntu 24.04 -> pyadi-iio must be <= 0.0.14
 sudo -u "$TARGET_USER" python3 -m pip install --user --break-system-packages \
-  pyadi-iio numpy scipy matplotlib pyserial 2>/dev/null || \
-  echo "   (pip install skipped - python3-numpy/scipy/matplotlib from apt are enough," \
-       " pyadi-iio optional: 'pip install --user --break-system-packages pyadi-iio')"
+  "pyadi-iio==0.0.14" pyserial 2>/dev/null || \
+  echo "   (pyadi-iio install skipped; capture.py falls back to the libiio CLI)"
 
 echo "==> verify"
 iio_info --version 2>/dev/null | head -1 || true

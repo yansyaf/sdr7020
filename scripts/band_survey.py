@@ -39,7 +39,15 @@ def psd_of(path, fs):
     segs = iq[: nseg * nper].reshape(nseg, nper)
     P = np.abs(np.fft.fftshift(np.fft.fft(segs * win, axis=1), axes=1)) ** 2
     P = P.mean(axis=0) / (np.sum(win ** 2) * 2048.0 ** 2)
-    return 10 * np.log10(P + 1e-20), np.mean(np.abs(iq) ** 2)
+    db = 10 * np.log10(P + 1e-20)
+    f = np.fft.fftshift(np.fft.fftfreq(nper, 1 / fs))
+    # blank the DC / 1-f pedestal (about +/-300 kHz after gain) and the band edges:
+    # those are the receiver's own artefacts and would otherwise dominate every window
+    db[np.abs(f) < 300e3] = -999.0
+    edge = int(nper * 0.035)
+    db[:edge] = -999.0
+    db[-edge:] = -999.0
+    return f, db, np.mean(np.abs(iq) ** 2)
 
 
 def main():

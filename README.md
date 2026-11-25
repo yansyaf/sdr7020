@@ -1,20 +1,23 @@
 # sdr7020 — PlutoSky 7020 AD936X SDR
 
-Working setup, capture and plotting tools for the **OpenSourceSDRLab PlutoSky 7020
-AD936X** board (a PlutoSDR-compatible Zynq-7020 + AD9361 SDR).
+Setup, capture, transmit and custom-firmware tooling for the
+**OpenSourceSDRLab PlutoSky 7020 AD936X** board (Zynq-7020 + AD9361, PlutoSDR
+compatible).
 
-Everything here was written against, and verified on, a real board:
+Everything here was written against a real board, and is explicit about what has
+been proven and what has not:
 
 | item | value |
 |---|---|
 | board | Analog Devices PlutoSDR Rev.C (Z7010/AD9363) — PlutoSky 7020 |
 | firmware | PlutoSDR v0.38 port (`v0.38-1-g6f8e-dirty`) |
 | transceiver | AD9361, 70 MHz – 6 GHz, 2×TX / 2×RX, up to 56 MHz bandwidth |
-| USB ID | `0456:b673` (gadget) + `0403:6010` (FT2232H debug) |
-| network | `192.168.2.1` over USB, also `192.168.2.1` over Ethernet |
+| USB ID | `0456:b673` (data gadget) + `0403:6010` (FT2232H debug) |
+| network | `192.168.2.1` over USB, DHCP over Ethernet |
 | login | `root` / `analog` (ssh or serial) |
 | serial console | `/dev/ttyUSB1` @ 115200 8N1 |
-| measured | GSM-900 downlink captured at 935 MHz, 28 dB burst dynamics, see `captures/` |
+| **verified** | host stack, board control, RX and TX register paths, IQ capture and transfer, FFT shim simulation |
+| **not yet** | no external signal received — the SMA ports are still capped, see §9 |
 
 ---
 
@@ -22,208 +25,240 @@ Everything here was written against, and verified on, a real board:
 
 ![board](images/board.jpg)
 
-Ports, left to right along the edges:
-
-* **RJ45** — Gigabit Ethernet (the board runs a DHCP client, `ssh root@<ip>`)
-* **DEBUG** — micro-USB → on-board **FT2232H** (`0403:6010`), gives *serial
-  console* (`/dev/ttyUSB1`, 115200) and JTAG (`/dev/ttyUSB0`). This port also
-  powers the board on most revisions.
-* **USB** — the *OTG data* port → this is the one that carries the PlutoSDR
-  gadget (`0456:b673`), i.e. the sample stream. **If you only plug in DEBUG you
-  get a console but no data link.**
-* **SMA TX1 / RX1 / TX2 / RX2**, 50 Ω. Remove the yellow dust cap and screw an
-  antenna onto **RX1** (the one nearest the fan) for receive.
+* **RJ45** — Gigabit Ethernet, DHCP client (`ssh root@<ip>`).
+* **DEBUG** — micro-USB to the on-board **FT2232H** (`0403:6010`): serial console
+  on `/dev/ttyUSB1` (115200) and JTAG on `/dev/ttyUSB0`. This port also powers
+  the board.
+* **USB** — the **OTG data** port. This one carries `0456:b673` and therefore the
+  sample stream. *Plugging only DEBUG gives you a console and no data link.*
+* **SMA TX1 / RX1 / TX2 / RX2**, 50 Ω — remove the dust cap before use.
 * **DC jack** — 5 V / 2 A.
 
-Minimum for receive: power + USB (OTG data port) + antenna on RX1.
+Receive needs: power + a data cable in the USB port + an antenna on RX1.
+Transmit needs: the same, plus a load on TX1 (see §5).
 
 ## 2. Host setup (Ubuntu 24.04)
 
 ```bash
 git clone https://github.com/yansyaf/sdr7020.git
 cd sdr7020
-sudo ./scripts/setup_host.sh          # libiio, iio tools, SoapySDR+PlutoSDR, gqrx, python deps
-newgrp plugdev                        # or log out / log in once
+sudo ./scripts/setup_host.sh
+newgrp plugdev     # or log out / in once
+./scripts/check_setup.sh
 ```
 
-`setup_host.sh` installs:
+Installs libiio + iio tools, libad9361, **SoapyPlutoSDR** (built from source —
+Ubuntu 24.04 has no package), gqrx, the gnuradio IIO bindings, numpy/scipy/
+matplotlib/pyserial, **pyadi-iio 0.0.14** (0.0.15+ requires libiio 1.x, noble
+ships 0.25) and the udev rules.
 
-* `libiio` + `iio_info` / `iio_attr` / `iio_readdev` / `iiod`
-* `libad9361`
-* **SoapyPlutoSDR** (built from source — Ubuntu 24.04 has no package)
-* `gqrx` and the gnuradio IIO bindings
-* `python3-numpy scipy matplotlib pyserial`, optional `pyadi-iio`
-* `/etc/udev/rules.d/99-plutosdr.rules` so the board works without root
-
-## 3. Check that the host sees the board
+## 3. Does the host see the board?
 
 ```bash
-lsusb | grep 0456                 # -> 0456:b673 Analog Devices, Inc. PlutoSDR
-iio_info -s                       # -> context "usb:..." and "local:"/"ip:192.168.2.1"
-ssh root@192.168.2.1              # password: analog
+lsusb | grep 0456      # 0456:b673  -> the data port is connected
+iio_info -s            # -> a "usb:" context
+ssh root@192.168.2.1   # password: analog
+./scripts/check_setup.sh --serial
 ```
 
-If `lsusb` shows only `0403:6010` (Digilent Adept), the cable is in the **DEBUG**
-port. Move it to the **USB** port, or keep DEBUG for the console and add a
-second cable to USB for data.
+Seeing only `0403:6010` means the cable is in DEBUG. That is still enough for
+everything in §6, including a CW transmitter.
 
-## 4. Capture a signal (the whole point)
+## 4. Receive
 
 ```bash
-scripts/capture.py --find                      # what contexts are there?
-scripts/capture.py --freq 935e6 --samples 1e6 --out captures/gsm900
+./scripts/capture.py --find
+./scripts/capture.py --freq 935e6 --samples 1e6 --out captures/gsm900
+./scripts/plot_iq.py captures/gsm900.npy        # PSD + spectrogram + envelope
 ```
 
-`capture.py` uses `pyadi-iio` when it is installed, otherwise the libiio CLI. It
-writes:
+`capture.py` prefers pyadi-iio and falls back to the libiio CLI. Output is
+`<name>.npy` (complex64), `<name>.json` (LO / rate / gain / backend) and
+`<name>.png`.
 
-* `captures/gsm900.npy` — complex64 samples (amplitude normalised to ±1)
-* `captures/gsm900.json` — LO, sample rate, bandwidth, gain, backend, timestamp
-* `captures/gsm900.png` — PSD + spectrogram + power envelope
+Useful knobs: keep `--rate` ≤ `--bw`; the AD9361 minimum is 2.083 MSPS; USB 2.0
+sustains roughly 8–10 MSPS of 16-bit I/Q before it starts dropping buffers.
 
-Plot any capture again later:
+## 5. Transmit
 
 ```bash
-scripts/plot_iq.py captures/gsm900.npy
-scripts/plot_iq.py captures/gsm900.npy --out images/gsm900.png --title "GSM 900 downlink"
+./scripts/tx_example.py --mode cw    --freq 915e6 --tx-gain -40     # on-chip DDS
+./scripts/tx_example.py --mode chirp --freq 915e6 --seconds 0.2     # DMA buffer
+./scripts/tx_example.py --mode fm    --freq 100e6 --tx-gain -50
+./scripts/tx_example.py --mode cw    --freq 915e6 --serial          # DDS over the console
 ```
 
-Useful options:
-
-```bash
-# frequency, sample rate, analog bandwidth, gain (max 71 dB), duration
-scripts/capture.py --freq 100e6 --rate 5e6 --bw 4e6 --gain 60 --seconds 0.4
-
-# 2.4 GHz Wi-Fi, two seconds of data
-scripts/capture.py --freq 2.437e9 --rate 10e6 --seconds 2 --out captures/wifi
-```
-
-Keep `rate` ≤ `bw`, and remember the AD9361 minimum is 2.083 MSPS and the USB 2.0
-link sustains roughly 8–10 MSPS of 16-bit I/Q before it starts dropping buffers.
-
-## 5. Serial-only mode (no data USB port)
-
-If only DEBUG is plugged in — or the USB gadget will not enumerate — the samples
-can still be pulled through the serial console. It is slow (~4 kB/s) but it needs
-nothing but the debug cable:
-
-```bash
-scripts/console.py "uname -a" "iio_info -s"      # poke the board
-scripts/capture_serial.py --freq 935e6 --samples 65536 --out captures/serial_935M
-scripts/plot_iq.py captures/serial_935M.npy
-```
-
-`capture_serial.py` logs in as `root`/`analog`, configures the AD9361 with the
-board's own `iio_attr`, captures with `iio_readdev`, dumps the buffer as hex with
-`od`, rebuilds it here and verifies the MD5 end-to-end.
-
-## 6. Live spectrum in a GUI
-
-```bash
-gqrx
-#  -> Device: "PlutoSDR [soapy]"   (SoapyPlutoSDR)
-#  -> Input rate: 2083333 or 3072000, LNB LO 0, gain manual ~40-60 dB
-```
-
-Or with the SoapySDR CLI:
-
-```bash
-SoapySDRUtil --probe=driver=plutosdr
-SoapySDRUtil --args="driver=plutosdr" --rate=2e6 --freq=935e6 --gain=50 --dump
-```
-
-## 7. Sweep the spectrum
-
-```bash
-scripts/band_survey.py                    # predefined VHF/UHF/cellular/Wi-Fi plan
-scripts/band_survey.py --start 88 --stop 108 --step 2     # FM band in 2 MHz steps
-scripts/band_survey.py --resume           # continue an interrupted sweep
-```
-
-Over the serial link the sweep uses `capture_serial.py` timings (~20 s per
-frequency at 16 k samples). Over USB it is limited only by the settle time.
-
-## 8. What was captured on this unit
-
-No antenna was fitted during the first session (dust caps were still on the SMA
-connectors), so everything below is leakage into an open RX port — a real
-antenna improves it by tens of dB. Both records were pulled through the serial
-console, i.e. with no USB data link at all.
-
-![LTE 800 downlink at 816 MHz](images/sample_lte800_816MHz.png)
-
-**LTE 800 downlink, LO 816 MHz, 2.083 MSPS, 65 536 samples, 71 dB gain.**
-A 1 MHz flat-top LTE carrier, OFDM sub-carriers visible as horizontal striations
-in the spectrogram, 1 ms sub-frame periodicity in the envelope, peak 16 dBFS
-(SNR 29.5 dB above the noise floor). Carrier frequency measured at 815.908 MHz.
-
-![GSM 900 downlink at 935 MHz](images/sample_gsm900_935MHz.png)
-
-**900 MHz cellular downlink, LO 935 MHz.** Two adjacent 200 kHz GSM carriers on
-a continuous broadcast channel, peak 15.8 dBFS, SNR 36 dB. The notch in the
-middle is the AD9361 DC-offset correction at the LO.
-
-![band occupancy](images/band_occupancy.png)
-
-**Band occupancy, 23 windows of 2 MHz at maximum gain** (`captures/survey/`).
-The 800 MHz LTE downlink and 930–950 MHz cellular downlink are ~10 dB above the
-quietest windows; 3 GHz is flat and was used as the noise reference.
-
-| LO | band | observation |
+| mode | how | notes |
 |---|---|---|
-| 816 MHz | LTE 800 downlink | 1 MHz LTE carrier, SNR 29.5 dB, 1 ms sub-frames |
-| 935 MHz | GSM 900 | two 200 kHz carriers, SNR 36 dB |
-| 806 MHz | LTE 800 downlink | power 8 dB above noise floor |
-| 947 MHz | GSM 900 | two carriers ~2 MHz apart |
-| 3 GHz | (quiet reference) | flat, 6.8 dB envelope spread |
+| `cw` | AD9361 DDS | no samples streamed, so it also works with `--serial` (debug cable only) |
+| `tone` / `chirp` / `fm` | TX DMA, cyclic buffer | needs the USB data port |
+| `--loopback` | transmit, then capture on RX and measure the tone | proves the whole RF chain |
 
-## 9. Troubleshooting
+TX level: `tx_hardwaregain_chan0` runs from 0 dB (maximum) to −89.75 dB; the DDS
+scale is 0..1 (0.1 is a sane start). Both TX outputs have a **PGA-102+ PA**, so
+never point one at a receiver without attenuation.
 
-**`tuning failed` in the console log.** Some boards need the vendor's
-`-no-tuning` firmware build (`PlutoSky-7020_*_no-tuning.zip` in the upstream
-GitHub releases) — it differs only in the AD9361 init script.
+**The loopback test settles the RX question** — TX1 → 30 dB attenuator → RX1:
 
-**`lsusb` shows nothing.** Use a *data* cable (many micro-USB cables are
-charge-only), plug into the **USB** port, and check `dmesg | tail` on the host.
+```bash
+./scripts/tx_example.py --mode chirp --loopback --freq 915e6
+```
 
-**`iio_info` says "No IIO context found".** Install `libiio-utils`, then
-`iio_info -s`. The board takes ~15 s to boot after power-on.
+A tone tens of dB above the floor means LO, mixer, ADC, FPGA, DMA and IIO all
+work, and any remaining silence on receive is purely the antenna.
 
-**Permission denied on `/dev/ttyUSB1`.** `sudo usermod -aG dialout $USER` and log
-in again (the rules file already sets 0666, a replug may be needed).
+**RF safety and law.** A PA into an open or badly matched port can damage itself:
+use a 50 Ω load or a properly attenuated cable. Transmitting into an antenna
+needs the appropriate licence; bench work into a load does not.
+
+## 6. Serial-only mode (no data USB port)
+
+Samples can be pulled through the FTDI console: slow (~4 kB/s) but it needs
+nothing but the debug cable.
+
+```bash
+./scripts/console.py "uname -a" "iio_info -s"
+./scripts/capture_serial.py --freq 935e6 --samples 65536 --out captures/serial_935M
+./scripts/plot_iq.py captures/serial_935M.npy
+```
+
+It logs in as `root`/`analog`, configures the AD9361 with the board's own
+`iio_attr`, captures with `iio_readdev`, dumps the buffer as hex with `od`,
+rebuilds it and verifies the MD5 end to end. It also fails loudly when the LO
+does not read back what was asked (the vendor `-no-tuning` firmware issue).
+
+## 7. Live spectrum
+
+```bash
+gqrx            # Device: "PlutoSDR [soapy]", rate 2083333 or 3072000, gain 40-60
+SoapySDRUtil --probe=driver=plutosdr
+```
+
+## 8. Sweeps, and not fooling yourself
+
+```bash
+./scripts/band_survey.py --resume           # power per band, DC pedestal masked
+./scripts/verify_signal.py --freq 935e6     # real signal or receiver artefact?
+```
+
+`verify_signal.py` is the important one. It captures twice with the LO shifted
+and compares both spectra under two alignments:
+
+* features at a fixed **absolute** frequency are radiated signals — they move
+  through the window when the LO moves;
+* features at a fixed **offset from the LO** are DC offset, 1/f noise, LO leakage
+  or baseband spurs.
+
+## 9. What this unit actually shows
+
+**No external signal has been received yet.** The SMA connectors still carry
+their dust caps, so RX1 is unterminated. In that state the AD9361 produces a
+DC / 1-f pedestal roughly ±200–300 kHz wide that looks *very* convincing: with
+the LO at 816 MHz it has a flat top that reads like an LTE carrier, and the
+envelope shows periodic structure.
+
+The retune test is what exposes it:
+
+| LO | correlation at the same LO offset | at the same absolute frequency | verdict |
+|---|---|---|---|
+| 816 → 816.4 MHz | **+0.934** | −0.074 | artefact |
+| 935 → 935.4 MHz | **+0.885** | +0.101 | artefact |
+| 100 → 100.4 MHz | **+0.956** | −0.235 | artefact |
+
+The pedestal follows the LO, so it belongs to the receiver, not to the air.
+
+What *is* verified on this hardware:
+
+* the board boots, the serial console works, `iio_info` lists the AD9361 and both
+  DMA cores;
+* RX gain −3…71 dB and LO tuning 70 MHz – 6 GHz both work and read back;
+* 65 536-sample IQ records transfer intact (MD5-verified) over the console;
+* the TX path configures correctly — TX LO 915 MHz readback, DDS channel
+  enabled, attenuation applied (`tx_example.py --serial --mode cw` ran on the
+  board).
+
+To turn that into "a signal was captured", in this order:
+
+1. screw an antenna onto **RX1** (a 20 cm wire in the centre pin is enough for FM
+   and cellular), then
+   `./scripts/verify_signal.py --freq 935e6` should report **REAL SIGNAL**;
+2. or prove the chain electrically with a TX1→RX1 cable and
+   `./scripts/tx_example.py --mode chirp --loopback`.
+
+## 10. Custom FPGA firmware (FFT / IFFT)
+
+`firmware/` builds a plutosdr-fw image with an FFT/IFFT stage in the receive
+path, targeting **Vivado 2024.1 / 2024.2**.
+
+```
+firmware/
+├── build.sh               clone + board patch + build  (--check, --topology)
+├── hdl/system_bd_fft.tcl  block design: xfft + shim + AXI GPIO
+└── hdl/ip/
+    ├── axis_fft_shim.v       framing, FFT/IFFT select, bypass
+    └── tb_axis_fft_shim.v    self-checking testbench (iverilog)
+```
+
+The shim and its testbench are verified here — `iverilog -g2012 -o /tmp/tb
+tb_axis_fft_shim.v axis_fft_shim.v && vvp /tmp/tb` prints `PASS: all checks
+passed`. The block-design TCL has **not** been run against a live hdl checkout
+(there is no Vivado on this machine), which is why `build.sh --topology` exists:
+it prints the real cell inventory before anything is inserted.
+
+Size, integration, the pin/register map and safe flashing (SD card first, QSPI
+only once it is proven): see [firmware/README.md](firmware/README.md).
+
+## 11. Troubleshooting
+
+**`tuning failed` in the log.** Some boards need the vendor's `-no-tuning`
+firmware build; it differs only in the AD9361 init script.
+
+**`lsusb` shows nothing.** Data cable, not a charge-only one, in the **USB**
+port; check `dmesg | tail` on the host.
+
+**`iio_info` finds no context.** `libiio-utils` installed? Has the board had ~15 s
+to boot?
+
+**Permission denied on `/dev/ttyUSB1`.** `sudo usermod -aG dialout $USER`, then
+log in again (the shipped udev rule grants 0666).
 
 **Overflows / dropped buffers.** Lower `--rate` or `--samples`; USB 2.0 tops out
-around 8–10 MSPS. The board also exposes `oversampling_ratio` and
-`rx_buffer_size` through `iio_attr`.
+near 8–10 MSPS.
 
-**Board is not reachable at 192.168.2.1.** The USB gadget takes ~10 s to come up;
-`ip -br a` on the host should show an interface with 192.168.2.x. Over Ethernet
-the board runs DHCP — check your router.
+**Board not at 192.168.2.1.** The gadget needs ~10 s; `ip -br a` should show a
+192.168.2.x interface. Over Ethernet the board uses DHCP.
 
-## 10. Firmware (optional)
+## Stock firmware
 
-The upstream repo ships SD-card and QSPI images:
+Vendor images:
 <https://github.com/OpenSourceSDRLab/PlutoSky_7020_AD936X_SDR/releases>.
-Booting from a FAT32 SD card is the safe way to try a different firmware: copy
-`BOOT.BIN` and `image.ub` to the card root, keep the QSPI image intact, and remove
-the card to boot the old firmware again.
+SD-card boot is the safe way to try firmware: keep QSPI intact, pull the card to
+go back. Note the layout changed with plutosdr-fw 0.39 — v0.38 uses
+`uImage` + `uramdisk.image.gz`, current builds use `BOOT.BIN` + `image.ub`.
 
 ## Repository layout
 
 ```
-scripts/setup_host.sh      one-shot host installer
-scripts/capture.py         capture (pyadi-iio, libiio CLI fallback)
-scripts/capture_serial.py  capture through the FTDI serial console
-scripts/plot_iq.py         PSD / spectrogram / envelope renderer
-scripts/band_survey.py     frequency sweep with per-band power
-scripts/console.py         run shell commands on the board over serial
-scripts/watch_and_capture.py  auto-capture as soon as the board is plugged in
-udev/99-plutosdr.rules     non-root access
-captures/                  sample data (.npy/.raw/.json/.png)
-images/                    figures used in this README
+scripts/setup_host.sh        one-shot host installer
+scripts/check_setup.sh       diagnose USB / IIO / serial / SoapySDR
+scripts/capture.py           RX capture (pyadi-iio, libiio CLI fallback)
+scripts/capture_serial.py    RX capture through the FTDI console
+scripts/tx_example.py        TX: DDS CW, tone/chirp/FM buffers, loopback test
+scripts/plot_iq.py           PSD / spectrogram / envelope
+scripts/verify_signal.py     real signal vs receiver artefact
+scripts/band_survey.py       frequency sweep
+scripts/plot_survey.py       occupancy chart
+scripts/console.py           run shell commands on the board over serial
+scripts/watch_and_capture.py auto capture when the board appears
+firmware/                    custom FPGA build (FFT/IFFT), Vivado 2024
+udev/99-plutosdr.rules       non-root access
+captures/                    raw IQ records (regression data, see §9)
 ```
+
+`captures/raw_*.raw` are genuine recordings taken with the RX port unterminated —
+useful as decoder regression data, not as examples of received signals.
 
 ## Licence
 
-MIT for the scripts. Firmware and hardware design are the vendor's (Apache-2.0 /
-GPL components, see the upstream repository).
+MIT for the scripts, TCL and Verilog here. Firmware and hardware design remain
+the vendor's / ADI's (Apache-2.0, GPL-2.0 and LGPL-2.1 components).

@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 # raw captures can be large; keep the small samples only
 captures/*.raw
-!captures/sample_*.raw
+!captures/raw_*.raw
 *.npy
-!captures/sample_*.npy
+!captures/raw_*.npy
+captures/watch.log
