@@ -168,3 +168,66 @@ proven:
 repository. ADI's hdl, plutosdr-fw, Linux and u-boot keep their own licences
 (mostly GPL-2.0 / LGPL-2.1), and the Xilinx FFT core is used under the Vivado
 licence you install it with.
+
+## Expansion header as PL I/O (`expio/`)
+
+The vendor's functional block diagram shows a two-pin "3.3V IO / 1.8V IO" header.
+**That diagram is simplified and misleading.** Sheet 8 of
+`PlutoSky-7020_Schematic_PA.pdf` (PL banks 34 / 35 / 13) shows the header nets
+going to ordinary PL pins:
+
+| header net | Zynq ball | level | plan in `expio.xdc` |
+|---|---|---|---|
+| `3V3_IO1` | V10 | 3.3 V | step X |
+| `3V3_IO2` | U9 | 3.3 V | step Y |
+| `3V3_IO3` | U10 | 3.3 V | step R |
+| `3V3_IO4` | T9 | 3.3 V | enable (active low) |
+| `1V8_IO1_P` | G19 | 1.8 V | limit X (input) |
+| `1V8_IO1_N` | G20 | 1.8 V | dir X |
+| `1V8_IO3_P` | J18 | 1.8 V | limit Y (input) |
+| `1V8_IO3_N` | H18 | 1.8 V | dir Y |
+| `1V8_IO5_P` | H16 | 1.8 V | limit R (input) |
+| `1V8_IO5_N` | H17 | 1.8 V | dir R |
+| `1V8_IO7_P` | L14 | 1.8 V | spare |
+| `1V8_IO7_N` | L15 | 1.8 V | spare |
+| `PTT_IO` | P14 | 1.8 V | PTT output |
+
+Extracted from the PDF text layer and cross-checked against a render of the
+sheet. **Re-verify on sheet 8 before you synthesize** — a wrong PACKAGE_PIN on a
+bank whose VCCO differs can damage the part.
+
+So yes: custom HDL can drive the header. Twelve general-purpose pins is enough
+for 3 axes (6 step/dir + 3 limits) with three to spare. What it is *not* enough
+for is driving motor signals directly, for two separate reasons:
+
+* **Levels.** The step lines land on bank 13 (3.3 V, drives a driver input fine);
+  the dir lines land on bank 35 (**1.8 V**). A DRV8825/TMC2209 input wants
+  3.3–5 V, so put a 74LVC1T45 on each dir line — or move all three dirs onto the
+  four 3.3 V pins and give up the enable/spare.
+* **Timing.** Linux-toggled step pulses jitter by milliseconds. Fine for jogging
+  and for move-stop-measure scans; not fine for coordinated motion. That needs a
+  clocked step generator in the PL, behind the same register block.
+
+### Build it
+
+```bash
+EXPIO=1 ./build.sh          # adds axi_gpio_exp + expio_io to the block design
+```
+
+Then add `expio.xdc` to the project's constraints (it is copied into
+`hdl/projects/pluto/`), and in the block design log take the assigned base
+address — usually `0x4120_0000`:
+
+```bash
+devmem 0x41200000 32 0x001    # step_x high  (bit0)
+devmem 0x41200000 32 0x000    # step_x low
+devmem 0x41200008 32          # read limit switches (bit0..2)
+```
+
+Bit map: `out[0..2] step_x/y/r`, `out[3] enable`, `out[4..6] dir_x/y/r`,
+`out[7..8] spare`, `out[9] ptt_io`; `in[0..2] limit_x/y/r`.
+
+Verified here: `expio_io.v` compiles under iverilog and its testbench confirms the
+bit map; both TCL files parse. The block design itself has not been run through
+Vivado (none on this machine), so use `EXPIO_DRY_RUN=1` first, as with the FFT
+stage.

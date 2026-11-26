@@ -125,6 +125,9 @@ fi
 say "installing the FFT stage into $PROJ_DIR"
 cp "$HERE/hdl/ip/axis_fft_shim.v" "$PROJ_DIR/axis_fft_shim.v"
 cp "$HERE/hdl/system_bd_fft.tcl"  "$PROJ_DIR/system_bd_fft.tcl"
+cp "$HERE/hdl/expio/expio_io.v"   "$PROJ_DIR/expio_io.v"
+cp "$HERE/hdl/expio/expio.tcl"    "$PROJ_DIR/expio.tcl"
+cp "$HERE/hdl/expio/expio.xdc"    "$PROJ_DIR/expio.xdc"
 
 BD="$PROJ_DIR/system_bd.tcl"
 if ! grep -q "system_bd_fft.tcl" "$BD"; then
@@ -144,6 +147,15 @@ else
   echo "    already patched"
 fi
 diff -u "$WORKDIR/system_bd.tcl.orig" "$BD" | sed 's/^/    /' || true
+
+# expansion header as PL I/O (opt-in: EXPIO=1 ./build.sh)
+if [[ "${EXPIO:-0}" == "1" ]]; then
+  if ! grep -q "expio.tcl" "$BD"; then
+    sed -i '/system_bd_fft.tcl/a source [file join $ad_project_dir expio.tcl]' "$BD"
+    echo "    inserted expio.tcl after the FFT stage"
+  fi
+  echo "    NOTE: add expio.xdc to the project constraints (see firmware/README.md)"
+fi
 
 if [[ $TOPO -eq 1 ]]; then
   say "block-design inventory (dry run, no build)"

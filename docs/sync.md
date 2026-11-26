@@ -20,8 +20,11 @@ stepper controller and the SDR is a noise injector.
 
 ### Board header → motion controller
 
-Only two general-purpose IO pins exist, so the header carries **sync**, not motor
-signals.
+The header carries **13 PL pins** (four 3.3 V, eight 1.8 V, plus `PTT_IO`) - see
+`firmware/README.md` and `firmware/hdl/expio/`. On **stock firmware** none of them
+is exposed to Linux, so out of the box the header is only usable as a sync node.
+Once you build the bitstream with `EXPIO=1`, `scripts/ptt.py --backend devmem` can
+drive `PTT_IO` (ball P14) as a real output.
 
 | header pin | level | goes to | through |
 |---|---|---|---|

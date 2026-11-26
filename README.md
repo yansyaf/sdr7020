@@ -203,9 +203,12 @@ until the machine reports `Idle`, so every row of the CSV carries a position the
 controller actually reached, not one that was commanded.
 
 **On the FPGA GPIO question:** the Zynq exposes 118 lines (`gpiochip0`, 906–1023)
-and Linux is using three of them, but this board's expansion header only brings
-out **two IO pins** (one at 3.3 V, one at 1.8 V) plus PTT OUT and RFIC SYNC.
-Three axes need 6 step/dir outputs at minimum. So: use the header for a
+and Linux is using three of them; the header itself carries **13 PL pins**
+(4 × 3.3 V, 8 × 1.8 V, plus `PTT_IO`) — enough for 3 axes. What stock firmware
+lacks is any way to reach them: no DT node, no GPIO driver binding. `EXPIO=1
+./build.sh` adds an AXI GPIO over those pins (see firmware/README.md), after
+which `devmem` drives them. Levels differ per bank (1.8 V vs 3.3 V), which is the
+practical constraint, not the pin count. So: use the header for a
 trigger/sync line if you want hardware synchronisation, and let a $30 motion
 controller own the motors. The reasoning, pin table, level limits, λ/4 sampling
 rules, EMI rules and a pre-flight checklist are in
