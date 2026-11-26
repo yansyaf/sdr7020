@@ -41,6 +41,7 @@ import csv
 import json
 import math
 import os
+import re
 import sys
 import time
 
@@ -60,6 +61,7 @@ class GrblMotion:
         self.s = serial.Serial(port, baud, timeout=0.2)
         self.r_axis = r_axis
         self.feed = feed
+        self.pos = {"x": 0.0, "y": 0.0, "r": 0.0}
         time.sleep(2.0)                      # Arduino reset on open
         self.s.reset_input_buffer()
         self._send("G21")                    # millimetres
@@ -96,6 +98,34 @@ class GrblMotion:
     def dwell(self, seconds):
         return self._send("G4 P%.2f" % seconds)
 
+    def status(self):
+        """GRBL real-time status report: '?' -> '<Idle|MPos:x,y,z|...>'."""
+        self.s.write(b"?")
+        deadline = time.time() + 2.0
+        buf = b""
+        while time.time() < deadline:
+            buf += self.s.read(256)
+            if b">" in buf:
+                break
+        return buf.decode("utf-8", "replace").strip()
+
+    def wait_idle(self, timeout=30.0):
+        """Block until the machine reports Idle - i.e. actually in position."""
+        t0 = time.time()
+        st = ""
+        while time.time() - t0 < timeout:
+            st = self.status()
+            m = re.search(r"MPos:(-?[\d.]+),(-?[\d.]+),(-?[\d.]+)", st)
+            if m:
+                self.pos = {"x": float(m.group(1)), "y": float(m.group(2)),
+                            "r": float(m.group(3))}
+            if "<Idle" in st:
+                return True
+            if "Alarm" in st:
+                raise RuntimeError("controller alarm: %s" % st)
+            time.sleep(0.05)
+        raise TimeoutError("machine did not reach Idle in %.0f s (%s)" % (timeout, st))
+
     def close(self):
         self.s.close()
 
@@ -123,6 +153,12 @@ class MockMotion:
 
     def dwell(self, seconds):
         time.sleep(min(seconds, 0.01))       # never actually wait in a mock run
+        return True
+
+    def status(self):
+        return "<Idle|MPos:%.3f,%.3f,%.3f>" % (self.pos["x"], self.pos["y"], self.pos["r"])
+
+    def wait_idle(self, timeout=30.0):
         return True
 
     def close(self):
@@ -232,7 +268,11 @@ def main():
     ap.add_argument("--offset", type=float, default=None,
                     help="CW offset for a transmission measurement (e.g. 250e3)")
     ap.add_argument("--feed", type=float, default=3000, help="mm/min")
-    ap.add_argument("--dwell", type=float, default=0.25, help="seconds to settle before capture")
+    ap.add_argument("--dwell", type=float, default=0.25,
+                    help="seconds to settle after the move / after Idle")
+    ap.add_argument("--sync", choices=["idle", "dwell"], default="idle",
+                    help="idle = poll ?status until the machine reports Idle (default); "
+                         "dwell = blind G4 wait")
     ap.add_argument("--save-iq", action="store_true")
     ap.add_argument("--out", required=True, help="output basename")
     ap.add_argument("--no-plot", action="store_true")
@@ -272,7 +312,9 @@ def main():
                 motion.move(x=x, y=y, r=r)
             else:
                 motion.move(x=p[0], y=p[1])
-            motion.dwell(a.dwell)
+            if a.sync == "idle":
+                motion.wait_idle()          # position is now real, not commanded
+            motion.dwell(a.dwell)           # mechanics + AD9361 loops settle
             mean, band = measure.measure(k, outdir)
             pos = getattr(motion, "pos", {"x": p[0], "y": p[1], "r": p[2] if len(p) == 3 else 0.0})
             rows.append({"index": k, "x_mm": pos["x"], "y_mm": pos["y"], "r_deg": pos["r"],

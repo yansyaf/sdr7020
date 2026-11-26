@@ -189,6 +189,14 @@ Motion goes through GRBL/Marlin over serial (Arduino + 3 stepper drivers), which
 already handles acceleration, homing and limit switches. Output is a CSV with
 `x_mm, y_mm, r_deg, mean_dbfs` plus a heatmap or polar plot.
 
+![wiring](docs/wiring-grbl.png)
+
+Full wiring tables and the three sync modes (software handshake, GRBL hardware
+trigger, SDR window marker) — plus what `RFIC SYNC IO` really is — are in
+[docs/sync.md](docs/sync.md). `--sync idle` (default) polls GRBL's `?status`
+until the machine reports `Idle`, so every row of the CSV carries a position the
+controller actually reached, not one that was commanded.
+
 **On the FPGA GPIO question:** the Zynq exposes 118 lines (`gpiochip0`, 906–1023)
 and Linux is using three of them, but this board's expansion header only brings
 out **two IO pins** (one at 3.3 V, one at 1.8 V) plus PTT OUT and RFIC SYNC.
