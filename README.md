@@ -107,6 +107,11 @@ never point one at a receiver without attenuation.
 A tone tens of dB above the floor means LO, mixer, ADC, FPGA, DMA and IIO all
 work, and any remaining silence on receive is purely the antenna.
 
+`./scripts/ptt.py` keys the transmitter (`on`, `off`, `pulse --ms N`) through the
+transceiver's TX enable, which is what drives the header's PTT OUT pin on stock
+firmware; a GPIO in the custom bitstream is the alternative. See
+[docs/sync.md](docs/sync.md) §6.
+
 **RF safety and law.** A PA into an open or badly matched port can damage itself:
 use a 50 Ω load or a properly attenuated cable. Transmitting into an antenna
 needs the appropriate licence; bench work into a load does not.
@@ -303,6 +308,7 @@ scripts/capture_serial.py    RX capture through the FTDI console
 scripts/tx_example.py        TX: DDS CW, tone/chirp/FM buffers, loopback test
 scripts/plot_iq.py           PSD / spectrogram / envelope
 scripts/verify_signal.py     real signal vs receiver artefact
+scripts/ptt.py               PTT / TX-enable: ensm, board GPIO, AXI GPIO
 scripts/band_survey.py       frequency sweep
 scripts/plot_survey.py       occupancy chart
 scripts/console.py           run shell commands on the board over serial

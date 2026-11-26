@@ -38,6 +38,17 @@ systemctl --user status sdr7020-watch
 tail -f ~/Projects/sdr7020/captures/watch.log
 ```
 
+## Before driving the board by hand
+
+The watcher opens the USB gadget to run its survey, which makes `iio_info`,
+`pyadi-iio` and `ptt.py` fail with `Device or resource busy`. Stop it first:
+
+```bash
+systemctl --user stop sdr7020-watch
+# ... do your work ...
+systemctl --user start sdr7020-watch
+```
+
 ## Stop / remove
 
 ```bash

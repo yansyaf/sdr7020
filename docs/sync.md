@@ -134,3 +134,53 @@ they need a firmware change and, realistically, your own carrier board).
 4. Noise floor with motors energised vs disabled — should be identical. If not,
    fix grounding before measuring anything.
 5. Then a coarse grid at λ/2 and look at the heatmap before refining.
+
+## 6. PTT from Python
+
+`scripts/ptt.py` asserts the board's PTT / TX-enable. Three backends, because
+"PTT" is three different things here:
+
+```bash
+./scripts/ptt.py --diag                      # what does this board expose?
+./scripts/ptt.py on                          # TX path on -> PTT asserted
+./scripts/ptt.py off                         # alert: TX and RX down
+./scripts/ptt.py pulse --ms 250              # marker, then back to the old state
+./scripts/ptt.py on --keep                   # leave it keyed, exit
+
+# custom device tree that frees a Zynq GPIO line (runs over the console)
+./scripts/ptt.py on --backend gpio --gpio 1013
+
+# custom bitstream with the FFT/AXI-GPIO block from firmware/
+./scripts/ptt.py pulse --backend devmem --axi-base 0x41200000 --axi-bit 2
+```
+
+What works today, measured on this unit:
+
+```
+$ ./scripts/ptt.py --diag
+  ensm_mode      : fdd     <- the PTT lever on stock firmware
+  AD9361 GPOs    : none exported
+  Zynq GPIO lines in use: 3   (led0, ulpi resetb, reset)
+  devmem         : available
+
+$ ./scripts/ptt.py pulse --ms 200
+backend ensm, state before: fdd
+asserted -> fdd for 200 ms
+released -> alert
+restored to fdd -> fdd
+```
+
+Notes that matter:
+
+* **The header's PTT OUT is not a Linux GPIO** on stock firmware. It follows the
+  transceiver's TX enable, which is why the `ensm` backend works and why you
+  cannot toggle it independently without a firmware change.
+* `alert` powers down **RX as well**. That is right for a half-duplex rig, but it
+  will abort a capture in progress — which is exactly what you want if PTT is
+  gating a measurement window.
+* `pulse` restores the *previous* state, not "off". Starting from `fdd` leaves you
+  in `fdd`, so a pulse does not silently kill your receiver.
+* The board has no Python, so the `gpio` and `devmem` backends drive it with
+  sysfs and busybox `devmem` **over the FTDI console**.
+* The transmitter is attenuated to -30 dB before keying. With a PA and an open
+  SMA that is not optional.
