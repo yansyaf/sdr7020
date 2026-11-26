@@ -20,7 +20,9 @@
 #   3V3_IO4 -> spare / enable
 #   1V8_IO1_N -> dir X       1V8_IO7_P -> spare
 #   1V8_IO3_N -> dir Y       1V8_IO7_N -> spare
-#   1V8_IO5_N -> dir R       PTT_IO    -> spare (see ptt.py)
+#   1V8_IO5_N -> dir R       PTT_IO    -> ptt_io  (see ptt.py)
+#   1V8_IO7_P -> sync_to_grbl   (pulse out, firmware or hardware triggered)
+#   1V8_IO7_N -> sync_from_grbl (edge in, from GRBL M8/probe)
 #
 # Levels: the step lines are 3.3 V and can drive a driver input directly (or
 # through a 74LVC245). The dir lines are 1.8 V and are NOT in spec for a
@@ -40,10 +42,13 @@ set_property IOSTANDARD LVCMOS33 [get_ports {step_x step_y step_r step_ena_n}]
 set_property PACKAGE_PIN G20 [get_ports {dir_x}]
 set_property PACKAGE_PIN H18 [get_ports {dir_y}]
 set_property PACKAGE_PIN H17 [get_ports {dir_r}]
-set_property PACKAGE_PIN L14 [get_ports {spare_out0}]
-set_property PACKAGE_PIN L15 [get_ports {spare_out1}]
 set_property PACKAGE_PIN P14 [get_ports {ptt_io}]
-set_property IOSTANDARD LVCMOS18 [get_ports {dir_x dir_y dir_r spare_out0 spare_out1 ptt_io}]
+set_property PACKAGE_PIN L14 [get_ports {sync_to_grbl}]
+set_property IOSTANDARD LVCMOS18 [get_ports {dir_x dir_y dir_r ptt_io sync_to_grbl}]
+
+# ---- input, the trigger coming back from the controller ---------------------
+set_property PACKAGE_PIN L15 [get_ports {sync_from_grbl}]
+set_property IOSTANDARD LVCMOS18 [get_ports {sync_from_grbl}]
 
 # ---- inputs, bank 35 (VCCO 1.8 V, divided from the switch) ------------------
 set_property PACKAGE_PIN G19 [get_ports {limit_x}]

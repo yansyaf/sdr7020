@@ -128,6 +128,8 @@ cp "$HERE/hdl/system_bd_fft.tcl"  "$PROJ_DIR/system_bd_fft.tcl"
 cp "$HERE/hdl/expio/expio_io.v"   "$PROJ_DIR/expio_io.v"
 cp "$HERE/hdl/expio/expio.tcl"    "$PROJ_DIR/expio.tcl"
 cp "$HERE/hdl/expio/expio.xdc"    "$PROJ_DIR/expio.xdc"
+cp "$HERE/hdl/expio/sync_pulse.v" "$PROJ_DIR/sync_pulse.v"
+cp "$HERE/hdl/expio/expio_ila.tcl" "$PROJ_DIR/expio_ila.tcl"
 
 BD="$PROJ_DIR/system_bd.tcl"
 if ! grep -q "system_bd_fft.tcl" "$BD"; then
@@ -155,6 +157,14 @@ if [[ "${EXPIO:-0}" == "1" ]]; then
     echo "    inserted expio.tcl after the FFT stage"
   fi
   echo "    NOTE: add expio.xdc to the project constraints (see firmware/README.md)"
+fi
+
+# ILA instrumentation (opt-in: ILA=1 ./build.sh, usually with EXPIO=1)
+if [[ "${ILA:-0}" == "1" ]]; then
+  if ! grep -q "expio_ila.tcl" "$BD"; then
+    sed -i '/expio.tcl/a source [file join $ad_project_dir expio_ila.tcl]' "$BD"
+    echo "    inserted expio_ila.tcl after the expansion I/O"
+  fi
 fi
 
 if [[ $TOPO -eq 1 ]]; then

@@ -59,6 +59,8 @@ if {[llength [get_bd_cells -quiet expio_io_0]] == 0} {
     create_bd_cell -type module -reference expio_io expio_io_0
 }
 connect_bd_net [get_bd_pins axi_gpio_exp/gpio_io_o]  [get_bd_pins expio_io_0/gpio_out]
+# the sync pulse generator inside the wrapper needs the same clock as the GPIO
+connect_bd_net [lindex [get_bd_nets -quiet -filter {NAME =~ "*clk*"}] 0] [get_bd_pins expio_io_0/clk]
 connect_bd_net [get_bd_pins expio_io_0/gpio_in]      [get_bd_pins axi_gpio_exp/gpio2_io_i]
 
 # ---- clock / reset ---------------------------------------------------------
@@ -96,8 +98,8 @@ connect_bd_intf_net $free_port [get_bd_intf_pins axi_gpio_exp/S_AXI]
 puts "  axi_gpio_exp S_AXI -> $free_port"
 
 # ---- header pins to the top level -----------------------------------------
-foreach p {step_x step_y step_r step_ena_n dir_x dir_y dir_r \
-           spare_out0 spare_out1 ptt_io limit_x limit_y limit_r} {
+foreach p {step_x step_y step_r step_ena_n dir_x dir_y dir_r ptt_io \
+           sync_to_grbl sync_from_grbl limit_x limit_y limit_r} {
     set pin [get_bd_pins expio_io_0/$p]
     if {[llength [get_bd_intf_nets -quiet -of_objects $pin]] == 0 &&
         [llength [get_bd_nets -quiet -of_objects $pin]] == 0} {

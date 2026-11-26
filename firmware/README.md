@@ -224,10 +224,81 @@ devmem 0x41200000 32 0x000    # step_x low
 devmem 0x41200008 32          # read limit switches (bit0..2)
 ```
 
-Bit map: `out[0..2] step_x/y/r`, `out[3] enable`, `out[4..6] dir_x/y/r`,
-`out[7..8] spare`, `out[9] ptt_io`; `in[0..2] limit_x/y/r`.
+Bit map:
+
+| out bit | signal | pin | | in bit | signal |
+|---|---|---|---|---|---|
+| 0..2 | step_x / step_y / step_r | 3V3_IO1..3 | | 0..2 | limit_x / limit_y / limit_r |
+| 3 | enable (active low) | 3V3_IO4 | | 3 | sync_from_grbl level |
+| 4..6 | dir_x / dir_y / dir_r | 1V8_IO1_N, 3_N, 5_N | | 4 | sync pulse busy |
+| 7 | ptt_io | PTT_IO (P14) | | 5 | sync pulse toggle (activity) |
+| 10 | **sync pulse trigger** (edge) | - | | | |
+| 11 | **sync source**: 0 = software, 1 = echo | - | | | |
 
 Verified here: `expio_io.v` compiles under iverilog and its testbench confirms the
 bit map; both TCL files parse. The block design itself has not been run through
 Vivado (none on this machine), so use `EXPIO_DRY_RUN=1` first, as with the FFT
 stage.
+
+## Sync pulse to the motion controller (`sync_pulse.v`)
+
+The handshake in `docs/sync.md` needs one thing from the FPGA: a pulse the motion
+controller can trust. `sync_pulse.v` generates it, and it has two sources:
+
+* **software** - a rising edge on `out[10]` of the AXI GPIO. The bit is an event,
+  not a level, so it does not need clearing; a steady high produces exactly one
+  pulse.
+* **hardware echo** - with `out[11]` set, a rising edge arriving on
+  `sync_from_grbl` produces the pulse inside the PL. No USB round trip, no
+  Linux scheduler, no jitter.
+
+```
+GRBL M8 ──[divider 3.3→1.8]──► 1V8_IO7_N (L15) sync_from_grbl
+1V8_IO7_P (L14) sync_to_grbl ──[74LVC1T45 1.8→3.3]──► GRBL A5 probe / cycle-start
+```
+
+Both pins are on the **1.8 V** bank, so the outgoing line needs a level shifter
+(a divider only works downward), and the incoming one needs a divider. Do not
+skip either: 3.3 V into a 1.8 V bank pin is out of spec.
+
+Pulse width is the `PULSE_CLKS` parameter, default 1000 cycles (10 us at
+100 MHz) - longer than GRBL needs to see it, short enough that it cannot look
+like a stuck line. Raise it if your controller's input filter is slow.
+
+Status back to software: `in[3]` follows the incoming level, `in[4]` is busy
+while the pulse is high, `in[5]` toggles once per pulse - a cheap way to confirm
+from `devmem` that a pulse happened without a scope.
+
+**Verified:** `tb_expio_io.v` runs 17 checks under iverilog - bit map, a pulse of
+the right width, no re-trigger while the bit stays high, the hardware echo with
+`src_sel` set, and silence when it is not. `PASS: all checks passed`.
+
+## ILA instrumentation (`expio_ila.tcl`)
+
+```bash
+EXPIO=1 ILA=1 ./build.sh        # GPIO + RF monitors
+ILA_DRY_RUN=1 ./build.sh --topology   # print the AXI-Stream candidates first
+```
+
+| core | probes | use |
+|---|---|---|
+| `ila_expio` | `gpio_out[11:0]`, `gpio_in[11:0]`, `{sync_to_grbl, sync_from_grbl}` | did the step pulse or the sync edge actually reach the pin, and when |
+| `system_ila_rf` | the ADC -> DMA AXI4-Stream (`tdata/tvalid/tready/tlast`) | trigger on `tlast` for a frame boundary, or on a data value for a specific sample |
+| `system_ila_fft` | `axis_fft_shim_0/m_axis` | only when the FFT stage is built; compare RX against post-FFT |
+
+Depths default to 4096 (GPIO) and 8192 (streams). Each stream monitor costs a
+few BRAM36 at those depths - check the utilisation report on the xc7z020 before
+raising them.
+
+Use: program the bitstream, open the Vivado hardware manager, pick the core, set
+the trigger (`tlast` is the useful one on the stream; any bit on the GPIO word
+for the handshake), run, and capture. That is how you answer "did the pulse
+leave the pin" without a scope.
+
+**On the JESD question:** this board's RFIC link is **LVDS DDR**, not JESD204B.
+The vendor diagram labels the RFIC<->PL arrow "LVDS" for a reason: `projects/pluto`
+uses the ADI `axi_ad9361` core with `up_adc_interface`/`up_dac_interface`, there
+is no JESD core, no 8b/10b and no lane alignment to probe. To look at the
+converter bus itself, probe the internal single-rate `adc_data_*` signals after
+the IDDR inside that core - raw DDR package pins cannot be probed by an ILA
+directly, and an ILA on them would need an extra IDDR to be readable at all.

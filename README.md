@@ -207,7 +207,9 @@ and Linux is using three of them; the header itself carries **13 PL pins**
 (4 × 3.3 V, 8 × 1.8 V, plus `PTT_IO`) — enough for 3 axes. What stock firmware
 lacks is any way to reach them: no DT node, no GPIO driver binding. `EXPIO=1
 ./build.sh` adds an AXI GPIO over those pins (see firmware/README.md), after
-which `devmem` drives them. Levels differ per bank (1.8 V vs 3.3 V), which is the
+which `devmem` drives them — plus a firmware-triggerable sync pulse out to the
+motion controller and ILA cores on the GPIO word and the RF stream for
+in-hardware checking. Levels differ per bank (1.8 V vs 3.3 V), which is the
 practical constraint, not the pin count. So: use the header for a
 trigger/sync line if you want hardware synchronisation, and let a $30 motion
 controller own the motors. The reasoning, pin table, level limits, λ/4 sampling

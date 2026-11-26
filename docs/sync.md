@@ -79,11 +79,16 @@ uses that edge to start the RX buffer. Jitter drops from milliseconds to a clock
 cycle, and captures can happen while the axis is moving (useful for continuous
 scans).
 
-**This needs custom HDL.** Today the AD9361 core's DMA start is driven by
-software; there is no exposed trigger pin in the vendor firmware. The change is
-small — a synchroniser plus a start pulse into the DMA/TSTART in
-`firmware/hdl/` — but it is a firmware build, an SD-card boot and a test cycle.
-Do it after the rig moves reliably, not before.
+**The HDL for this now exists.** `firmware/hdl/expio/sync_pulse.v` generates the
+pulse from either a software write or a hardware edge, drives it out on
+`1V8_IO7_P` (L14), and takes the trigger back in on `1V8_IO7_N` (L15) — so the
+same two pins give you SYNC A and SYNC B. Build with `EXPIO=1 ILA=1 ./build.sh`,
+and monitor the handshake live with the ILA core while you bring it up.
+
+Two caveats that decide whether you use it: both pins are on the 1.8 V bank
+(outgoing needs a 74LVC1T45, incoming a divider), and driving the DMA *start*
+from that edge — rather than just marking the window — still needs the buffer
+trigger wired into the ADC core. The pulse itself is the easy half.
 
 ### B · SDR marks the window — for the motion side
 
