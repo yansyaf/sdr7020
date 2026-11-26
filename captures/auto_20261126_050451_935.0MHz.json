@@ -1,0 +1,11 @@
+{
+  "freq": 935000000.0,
+  "rate": 2083333.3,
+  "bw": 2000000.0,
+  "gain": 71,
+  "samples": 1048576,
+  "backend": "pyadi-iio",
+  "uri": "usb:1.5.5",
+  "antenna": "A_BALANCED",
+  "when": "2026-11-26T05:04:55"
+}

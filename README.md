@@ -149,7 +149,30 @@ and compares both spectra under two alignments:
 * features at a fixed **offset from the LO** are DC offset, 1/f noise, LO leakage
   or baseband spurs.
 
-## 9. What this unit actually shows
+## 9. S11 / S21 measurements (VNA)
+
+`scripts/vna.py` is a stepped-CW vector network analyser built on the board: CW
+tone out of TX1, coherent complex detection on RX1, and real calibration.
+
+```bash
+# S21: gain/loss of a filter, cable, amplifier, or an antenna pair
+./scripts/vna.py cal   --mode s21 --standard thru --start 400 --stop 500 --step 2
+./scripts/vna.py sweep --mode s21 --start 400 --stop 500 --step 2 --out captures/filter
+
+# S11: return loss / resonance -- needs a directional coupler or a bridge
+./scripts/vna.py cal --mode s11 --standard open  --start 88 --stop 108 --step 0.5
+./scripts/vna.py cal --mode s11 --standard short --start 88 --stop 108 --step 0.5
+./scripts/vna.py cal --mode s11 --standard load  --start 88 --stop 108 --step 0.5
+./scripts/vna.py cal --mode s11 --solve
+./scripts/vna.py sweep --mode s11 --start 88 --stop 108 --step 0.5 --out captures/antenna
+```
+
+Wiring, the bridge schematic, why S11 is meaningless without a directional device,
+`--ref-channel 1` (RX2 as incident monitor), Touchstone output and the accuracy
+limits: [docs/vna.md](docs/vna.md). The calibration chain is verified — a
+thru-calibrated repeat reads −0.19 dB / +0.42 dB.
+
+## 10. What this unit actually shows
 
 **No external signal has been received yet.** The SMA connectors still carry
 their dust caps, so RX1 is unterminated. In that state the AD9361 produces a
@@ -185,7 +208,7 @@ To turn that into "a signal was captured", in this order:
 2. or prove the chain electrically with a TX1→RX1 cable and
    `./scripts/tx_example.py --mode chirp --loopback`.
 
-## 10. Custom FPGA firmware (FFT / IFFT)
+## 11. Custom FPGA firmware (FFT / IFFT)
 
 `firmware/` builds a plutosdr-fw image with an FFT/IFFT stage in the receive
 path, targeting **Vivado 2024.1 / 2024.2**.
@@ -208,7 +231,7 @@ it prints the real cell inventory before anything is inserted.
 Size, integration, the pin/register map and safe flashing (SD card first, QSPI
 only once it is proven): see [firmware/README.md](firmware/README.md).
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 **`tuning failed` in the log.** Some boards need the vendor's `-no-tuning`
 firmware build; it differs only in the AD9361 init script.

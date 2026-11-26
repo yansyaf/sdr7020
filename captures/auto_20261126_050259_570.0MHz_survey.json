@@ -1,0 +1,75 @@
+{
+  "uri": "usb:1.5.5",
+  "when": "20261126_050259",
+  "best": {
+    "freq": 570000000.0,
+    "name": "DVB-T"
+  },
+  "survey": [
+    {
+      "freq": 88000000.0,
+      "name": "FM broadcast",
+      "meansq": 101.93058013916016
+    },
+    {
+      "freq": 100000000.0,
+      "name": "FM broadcast",
+      "meansq": 815.0545692443848
+    },
+    {
+      "freq": 121500000.0,
+      "name": "airband",
+      "meansq": 112.18185043334961
+    },
+    {
+      "freq": 433920000.0,
+      "name": "ISM 433",
+      "meansq": 106.0451774597168
+    },
+    {
+      "freq": 570000000.0,
+      "name": "DVB-T",
+      "meansq": 1385816.841217041
+    },
+    {
+      "freq": 650000000.0,
+      "name": "DVB-T",
+      "meansq": 130.05502319335938
+    },
+    {
+      "freq": 806000000.0,
+      "name": "LTE 800 downlink",
+      "meansq": 1957.6181945800781
+    },
+    {
+      "freq": 935000000.0,
+      "name": "GSM 900 downlink",
+      "meansq": 2469.3895568847656
+    },
+    {
+      "freq": 947000000.0,
+      "name": "GSM 900 downlink",
+      "meansq": 1668.294864654541
+    },
+    {
+      "freq": 1842500000.0,
+      "name": "LTE 1800 downlink",
+      "meansq": -1.0
+    },
+    {
+      "freq": 2140000000.0,
+      "name": "UMTS 2100",
+      "meansq": -1.0
+    },
+    {
+      "freq": 2437000000.0,
+      "name": "WiFi 2.4 GHz",
+      "meansq": 1507.1544761657715
+    },
+    {
+      "freq": 5180000000.0,
+      "name": "WiFi 5 GHz",
+      "meansq": -1.0
+    }
+  ]
+}
