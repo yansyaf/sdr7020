@@ -172,7 +172,33 @@ Wiring, the bridge schematic, why S11 is meaningless without a directional devic
 limits: [docs/vna.md](docs/vna.md). The calibration chain is verified — a
 thru-calibrated repeat reads −0.19 dB / +0.42 dB.
 
-## 10. What this unit actually shows
+## 10. 3-axis mechanics (planar antenna scans)
+
+`scripts/scan_rig.py` drives three motors and captures a co-registered
+measurement at every point — the mechanics half of an antenna range.
+
+```bash
+./scripts/scan_rig.py raster --mock --nx 9 --ny 9 --pitch 25 --out /tmp/scan_mock
+./scripts/scan_rig.py raster --port /dev/ttyUSB0 --home --nx 9 --ny 9 --pitch 50 \
+    --freq 2400e6 --dwell 0.3 --out captures/horn_2g4
+./scripts/scan_rig.py polar --port /dev/ttyUSB0 --start -180 --stop 180 --step 2 \
+    --freq 2400e6 --out captures/pattern_az
+```
+
+Motion goes through GRBL/Marlin over serial (Arduino + 3 stepper drivers), which
+already handles acceleration, homing and limit switches. Output is a CSV with
+`x_mm, y_mm, r_deg, mean_dbfs` plus a heatmap or polar plot.
+
+**On the FPGA GPIO question:** the Zynq exposes 118 lines (`gpiochip0`, 906–1023)
+and Linux is using three of them, but this board's expansion header only brings
+out **two IO pins** (one at 3.3 V, one at 1.8 V) plus PTT OUT and RFIC SYNC.
+Three axes need 6 step/dir outputs at minimum. So: use the header for a
+trigger/sync line if you want hardware synchronisation, and let a $30 motion
+controller own the motors. The reasoning, pin table, level limits, λ/4 sampling
+rules, EMI rules and a pre-flight checklist are in
+[docs/motor-rig.md](docs/motor-rig.md).
+
+## 11. What this unit actually shows
 
 **No external signal has been received yet.** The SMA connectors still carry
 their dust caps, so RX1 is unterminated. In that state the AD9361 produces a
@@ -208,7 +234,7 @@ To turn that into "a signal was captured", in this order:
 2. or prove the chain electrically with a TX1→RX1 cable and
    `./scripts/tx_example.py --mode chirp --loopback`.
 
-## 11. Custom FPGA firmware (FFT / IFFT)
+## 12. Custom FPGA firmware (FFT / IFFT)
 
 `firmware/` builds a plutosdr-fw image with an FFT/IFFT stage in the receive
 path, targeting **Vivado 2024.1 / 2024.2**.
@@ -231,7 +257,7 @@ it prints the real cell inventory before anything is inserted.
 Size, integration, the pin/register map and safe flashing (SD card first, QSPI
 only once it is proven): see [firmware/README.md](firmware/README.md).
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 **`tuning failed` in the log.** Some boards need the vendor's `-no-tuning`
 firmware build; it differs only in the AD9361 init script.

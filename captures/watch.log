@@ -406,3 +406,199 @@ board found at usb:1.6.5
   UMTS 2100             2140.00 MHz            79
   WiFi 2.4 GHz          2437.00 MHz            92
   WiFi 5 GHz            5180.00 MHz          6882
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 gain_control_mode manual -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 hardwaregain 71 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 sampling_frequency 2083333 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 rf_bandwidth 2000000 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 rf_port_select A_BALANCED -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy altvoltage0 frequency 5180000000 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+error: capture failed (short read: 0 bytes (wanted 4194304))
+  try scripts/check_setup.sh, or the serial fallback:
+  scripts/capture_serial.py --freq 5180000000.0 --samples 1048576
+
+board found at usb:1.6.5
+  FM broadcast            88.00 MHz            27
+  FM broadcast           100.00 MHz           802
+  airband                121.50 MHz           104
+  ISM 433                433.92 MHz           106
+  DVB-T                  570.00 MHz            85
+  DVB-T                  650.00 MHz           134
+  LTE 800 downlink       806.00 MHz          2931
+  GSM 900 downlink       935.00 MHz          3673
+  GSM 900 downlink       947.00 MHz          1830
+  LTE 1800 downlink     1842.50 MHz            88
+  UMTS 2100             2140.00 MHz            80
+  WiFi 2.4 GHz          2437.00 MHz            92
+  WiFi 5 GHz            5180.00 MHz          7307
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 gain_control_mode manual -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 hardwaregain 71 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 sampling_frequency 2083333 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 rf_bandwidth 2000000 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 rf_port_select A_BALANCED -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy altvoltage0 frequency 5180000000 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+error: capture failed (short read: 0 bytes (wanted 4194304))
+  try scripts/check_setup.sh, or the serial fallback:
+  scripts/capture_serial.py --freq 5180000000.0 --samples 1048576
+
+board found at usb:1.6.5
+  FM broadcast            88.00 MHz            29
+  FM broadcast           100.00 MHz           804
+  airband                121.50 MHz           100
+  ISM 433                433.92 MHz           106
+  DVB-T                  570.00 MHz            84
+  DVB-T                  650.00 MHz           129
+  LTE 800 downlink       806.00 MHz          2601
+  GSM 900 downlink       935.00 MHz          4016
+  GSM 900 downlink       947.00 MHz          1906
+  LTE 1800 downlink     1842.50 MHz            89
+  UMTS 2100             2140.00 MHz            79
+  WiFi 2.4 GHz          2437.00 MHz            95
+  WiFi 5 GHz            5180.00 MHz          3329
+file      : /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051458_935.0MHz.npy
+samples   : 1048576  (503.32 ms @ 2.083 MSPS)
+LO        : 935.0000 MHz   gain 71 dB
+mean power: -27.3 dBFS   median PSD -27.0 dBFS
+strongest : 935.4995 MHz  -21.1 dBFS  (SNR 5.9 dB)
+plot      : /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051458_935.0MHz.png
+top bins (edge/DC excluded):
+   935.4995 MHz  -21.1 dBFS
+   935.6536 MHz  -22.0 dBFS
+   935.3352 MHz  -22.2 dBFS
+   935.3357 MHz  -22.4 dBFS
+   935.4700 MHz  -22.4 dBFS
+   935.3596 MHz  -22.4 dBFS
+pyadi-iio: 1048576 samples in 0.513 s (2.04 MSPS effective)
+saved /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051458_935.0MHz.npy  (1048576 samples, mean -27.3 dBFS)
+
+board found at usb:1.6.5
+  FM broadcast            88.00 MHz           104
+  FM broadcast           100.00 MHz           824
+  airband                121.50 MHz           103
+  ISM 433                433.92 MHz           109
+  DVB-T                  570.00 MHz            86
+  DVB-T                  650.00 MHz           134
+  LTE 800 downlink       806.00 MHz          2575
+  GSM 900 downlink       935.00 MHz          3927
+  GSM 900 downlink       947.00 MHz          1639
+  LTE 1800 downlink     1842.50 MHz            90
+  UMTS 2100             2140.00 MHz            80
+  WiFi 2.4 GHz          2437.00 MHz            94
+  WiFi 5 GHz            5180.00 MHz          3335
+file      : /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051557_935.0MHz.npy
+samples   : 1048576  (503.32 ms @ 2.083 MSPS)
+LO        : 935.0000 MHz   gain 71 dB
+mean power: -27.3 dBFS   median PSD -27.0 dBFS
+strongest : 935.4995 MHz  -21.4 dBFS  (SNR 5.7 dB)
+plot      : /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051557_935.0MHz.png
+top bins (edge/DC excluded):
+   935.4995 MHz  -21.4 dBFS
+   935.3352 MHz  -21.9 dBFS
+   935.6536 MHz  -22.2 dBFS
+   934.2411 MHz  -22.4 dBFS
+   935.5941 MHz  -22.4 dBFS
+   935.3906 MHz  -22.4 dBFS
+pyadi-iio: 1048576 samples in 0.496 s (2.11 MSPS effective)
+saved /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051557_935.0MHz.npy  (1048576 samples, mean -27.3 dBFS)
+
+board found at usb:1.6.5
+  FM broadcast            88.00 MHz           102
+  FM broadcast           100.00 MHz           816
+  airband                121.50 MHz           112
+  ISM 433                433.92 MHz           109
+  DVB-T                  570.00 MHz            85
+  DVB-T                  650.00 MHz           131
+  LTE 800 downlink       806.00 MHz          2814
+  GSM 900 downlink       935.00 MHz          3920
+  GSM 900 downlink       947.00 MHz          1829
+  LTE 1800 downlink     1842.50 MHz            91
+  UMTS 2100             2140.00 MHz            80
+  WiFi 2.4 GHz          2437.00 MHz            93
+  WiFi 5 GHz            5180.00 MHz          5669
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 gain_control_mode manual -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 hardwaregain 71 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 sampling_frequency 2083333 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 rf_bandwidth 2000000 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy voltage0 rf_port_select A_BALANCED -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+warn: iio_attr -u usb:1.6.5 -c ad9361-phy altvoltage0 frequency 5180000000 -> ERROR: Unable to claim interface 1:6:5: Device or resource busy (16)
+Unable to create IIO context usb:1.6.5: Device or resource busy (16)
+error: capture failed (short read: 0 bytes (wanted 4194304))
+  try scripts/check_setup.sh, or the serial fallback:
+  scripts/capture_serial.py --freq 5180000000.0 --samples 1048576
+
+board found at usb:1.6.5
+  FM broadcast            88.00 MHz            29
+  FM broadcast           100.00 MHz           816
+  airband                121.50 MHz           106
+  ISM 433                433.92 MHz           106
+  DVB-T                  570.00 MHz            85
+  DVB-T                  650.00 MHz           131
+  LTE 800 downlink       806.00 MHz          2764
+  GSM 900 downlink       935.00 MHz          3903
+  GSM 900 downlink       947.00 MHz          2172
+  LTE 1800 downlink     1842.50 MHz            89
+  UMTS 2100             2140.00 MHz            80
+  WiFi 2.4 GHz          2437.00 MHz            97
+  WiFi 5 GHz            5180.00 MHz          2434
+file      : /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051806_935.0MHz.npy
+samples   : 1048576  (503.32 ms @ 2.083 MSPS)
+LO        : 935.0000 MHz   gain 71 dB
+mean power: -27.5 dBFS   median PSD -27.2 dBFS
+strongest : 935.4995 MHz  -21.3 dBFS  (SNR 5.9 dB)
+plot      : /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051806_935.0MHz.png
+top bins (edge/DC excluded):
+   935.4995 MHz  -21.3 dBFS
+   934.3947 MHz  -22.2 dBFS
+   935.3352 MHz  -22.4 dBFS
+   935.3555 MHz  -22.4 dBFS
+   934.2411 MHz  -22.4 dBFS
+   935.4990 MHz  -22.5 dBFS
+pyadi-iio: 1048576 samples in 0.497 s (2.11 MSPS effective)
+saved /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051806_935.0MHz.npy  (1048576 samples, mean -27.5 dBFS)
+
+board found at usb:1.6.5
+  FM broadcast            88.00 MHz           103
+  FM broadcast           100.00 MHz           835
+  airband                121.50 MHz           109
+  ISM 433                433.92 MHz           110
+  DVB-T                  570.00 MHz            83
+  DVB-T                  650.00 MHz           132
+  LTE 800 downlink       806.00 MHz          3011
+  GSM 900 downlink       935.00 MHz          3634
+  GSM 900 downlink       947.00 MHz          1421
+  LTE 1800 downlink     1842.50 MHz            89
+  UMTS 2100             2140.00 MHz            80
+  WiFi 2.4 GHz          2437.00 MHz            92
+  WiFi 5 GHz            5180.00 MHz          2337
+file      : /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051905_935.0MHz.npy
+samples   : 1048576  (503.32 ms @ 2.083 MSPS)
+LO        : 935.0000 MHz   gain 71 dB
+mean power: -27.9 dBFS   median PSD -27.6 dBFS
+strongest : 935.4995 MHz  -21.9 dBFS  (SNR 5.7 dB)
+plot      : /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051905_935.0MHz.png
+top bins (edge/DC excluded):
+   935.4995 MHz  -21.9 dBFS
+   934.2411 MHz  -22.8 dBFS
+   935.5941 MHz  -22.9 dBFS
+   934.3535 MHz  -22.9 dBFS
+   934.3947 MHz  -22.9 dBFS
+   935.6536 MHz  -22.9 dBFS
+pyadi-iio: 1048576 samples in 0.497 s (2.11 MSPS effective)
+saved /home/yansyaf/Projects/sdr7020/captures/auto_20261126_051905_935.0MHz.npy  (1048576 samples, mean -27.9 dBFS)
+
