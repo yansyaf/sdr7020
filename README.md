@@ -101,8 +101,13 @@ never point one at a receiver without attenuation.
 **The loopback test settles the RX question** — TX1 → 30 dB attenuator → RX1:
 
 ```bash
+./scripts/loopback_test.py                 # sweeps TX attenuation, finds a safe level
 ./scripts/tx_example.py --mode chirp --loopback --freq 915e6
 ```
+
+Without an attenuator inline, TX1's PA is feeding the RX input directly: keep TX
+at -60 dB or lower and RX gain at 0, and let `loopback_test.py` find the level
+(it reports clipping per setting).
 
 A tone tens of dB above the floor means LO, mixer, ADC, FPGA, DMA and IIO all
 work, and any remaining silence on receive is purely the antenna.
@@ -314,6 +319,7 @@ scripts/tx_example.py        TX: DDS CW, tone/chirp/FM buffers, loopback test
 scripts/plot_iq.py           PSD / spectrogram / envelope
 scripts/verify_signal.py     real signal vs receiver artefact
 scripts/ptt.py               PTT / TX-enable: ensm, board GPIO, AXI GPIO
+scripts/loopback_test.py     TX1->RX1 cable test: finds a safe TX level, measures SNR
 scripts/band_survey.py       frequency sweep
 scripts/plot_survey.py       occupancy chart
 scripts/console.py           run shell commands on the board over serial
